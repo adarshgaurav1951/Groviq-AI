@@ -4,6 +4,26 @@ Vision-powered produce identification, verified scale integration, and assisted 
 
 ---
 
+## 📸 Visual Showcase
+
+### 1. Assisted Checkout Kiosk UI
+![Assisted Checkout Kiosk UI](docs/images/checkout_ui.png)
+*Touchscreen kiosk interface featuring live camera viewport with laser scan animation, real-time Image Quality Gate badges, top-3 candidate recommendations with calibrated confidence, Legal Metrology digital scale platter with gross/tare/net weights, real-time decimal line calculation, and customer shopping basket.*
+
+---
+
+### 2. Store Operations & Fleet Admin Dashboard
+![Admin & Operations Dashboard](docs/images/admin_dashboard.png)
+*Store management console providing real-time KPI metrics, hardware fleet telemetry (camera, scale, POS terminal status), authoritative produce catalog & PLU management, ML model performance monitoring, and append-only regulatory audit trails.*
+
+---
+
+### 3. Interactive REST API Documentation
+![Interactive API Documentation](docs/images/api_docs.png)
+*OpenAPI Swagger developer console exposing computer vision recognition, scale hardware adapter protocols, basket lifecycle management, and POS checkout endpoints.*
+
+---
+
 ## 🌟 Overview
 
 The **BarcodeLess Produce Assistant** is an assisted checkout platform that combines overhead computer vision, image quality validation, verified Legal Metrology digital scale readings, authoritative decimal store pricing, and POS basket integration.
@@ -11,16 +31,16 @@ The **BarcodeLess Produce Assistant** is an assisted checkout platform that comb
 Designed specifically for loose fruits and vegetables lacking GS1 barcodes, it reduces lookup friction, prevents cashier mis-keying shrink, eliminates floating-point monetary discrepancies, and provides a safe human fallback mechanism.
 
 ### Key Highlights
-- **Staged Vision Pipeline:** Real-time Laplacian blur analysis, specular glare blowout detection, and produce isolation.
-- **ProduceNet ML Model:** Convolutional feature extraction trained on 26 supermarket produce staple classes.
+- **Staged Vision Pipeline:** Real-time discrete Laplacian blur analysis, specular glare blowout detection, and produce ROI isolation.
+- **ProduceNet & MobileNetV3 Backbone:** Feature extraction and prototype matching covering supermarket staple produce classes and open-world real-world objects.
   - **Top-1 Accuracy:** 98.85% (1,040 locked test samples)
   - **Top-3 Accuracy:** 100.00%
   - **Macro F1 Score:** 0.9882
   - **p95 Inference Latency:** 15.81 ms (SLA budget: < 300 ms)
 - **3-Tier Retail Decision Policy:**
-  - *High Confidence (≥ 0.85):* Direct 1-click confirmation.
-  - *Medium Confidence (0.50 – 0.85):* Top-3 ranked candidate choices with PLU tags.
-  - *Low Confidence / Unknown (< 0.50):* Safe routing to manual catalog search or attendant call.
+  - *High Confidence (≥ 0.75):* Direct 1-click confirmation.
+  - *Medium Confidence (0.45 – 0.75):* Top-3 ranked candidate choices with PLU tags.
+  - *New / Uncataloged (< 0.45):* Prompt to verify and enroll new products on the fly.
 - **Hardware Integration & Legal Metrology:** Certified scale protocol abstraction with tare handling, gross/net weights, motion/stability gating, and zero float math.
 - **Enterprise Traceability:** 100% immutable audit logging for catalog changes, user confirmations, attendant overrides, and committed transactions.
 
@@ -28,7 +48,7 @@ Designed specifically for loose fruits and vegetables lacking GS1 barcodes, it r
 
 ## 🚀 Live Host Links & Ports
 
-The application server is actively running on port `8000`:
+The application server runs on port `8000`:
 
 | Component | URL | Description |
 | :--- | :--- | :--- |
@@ -65,11 +85,11 @@ Scale Adapter (CAS/Mettler)       Pricing Engine (Decimal exact)
 
 ## 💻 Tech Stack
 
-- **Computer Vision & ML:** PyTorch 2.15, TorchVision, NumPy, Pillow, OpenCV (Discrete Laplacian)
+- **Computer Vision & ML:** PyTorch 2.15, TorchVision, MobileNetV3, NumPy, Pillow, OpenCV (Discrete Laplacian)
 - **Backend API:** FastAPI, Uvicorn, Pydantic v2
 - **Database & Persistence:** SQLite with Write-Ahead Logging (WAL) and strict foreign keys
 - **Testing:** Pytest (12/12 passing unit & integration tests)
-- **Frontend Kiosk & Admin:** Modern HTML5, Responsive CSS Grid, Vanilla JS State Engine
+- **Frontend Kiosk & Admin:** Modern HTML5, Responsive CSS Grid, Web Audio API Synthesizer, Vanilla JS State Engine
 
 ---
 
@@ -95,7 +115,7 @@ tests/test_quality_gate.py::test_glare_image_rejected PASSED
 tests/test_scale.py::test_scale_reading_and_tare PASSED
 tests/test_scale.py::test_scale_motion_detection PASSED
 tests/test_scale.py::test_scale_disconnect PASSED
-============================== 12 passed in 0.56s ==============================
+============================== 12 passed in 0.64s ==============================
 ```
 
 ---
@@ -105,7 +125,12 @@ tests/test_scale.py::test_scale_disconnect PASSED
 ```
 ├── PRD.md                         # Product Requirements Document
 ├── PLAN.md                        # Production execution plan & retail benchmark
-├── README.md                      # Architecture and operational guide
+├── README.md                      # Architecture, visuals, and operational guide
+├── docs/
+│   └── images/                    # UI & Dashboard screenshots
+│       ├── checkout_ui.png
+│       ├── admin_dashboard.png
+│       └── api_docs.png
 ├── apps/
 │   ├── checkout_ui/               # Touchscreen Kiosk UI with camera, candidates & scale
 │   │   ├── index.html
@@ -115,16 +140,17 @@ tests/test_scale.py::test_scale_disconnect PASSED
 ├── ml/
 │   ├── src/
 │   │   ├── quality.py             # Image quality gate (blur, glare, illumination)
-│   │   ├── classifier.py          # ProduceNet model, calibration, prototypes
+│   │   ├── classifier.py          # MobileNetV3 + OpenWorld prototype matching
 │   │   ├── evaluation.py          # ECE, confusion matrix, top-1/top-3 benchmark
 │   │   └── data.py                # Dataset loader and class mapping
 │   └── artifacts/
 │       ├── produce_net_v1.pth     # Serialized model weights
-│       ├── config.json            # Model parameters and prototypes
+│       ├── prototypes.json        # 576-dim feature prototype embeddings
+│       ├── config.json            # Model parameters
 │       └── evaluation_report.json # Validation benchmark report
 ├── services/
 │   ├── api/main.py                # FastAPI REST endpoints
-│   ├── catalog/service.py         # Store catalog & PLU resolution
+│   ├── catalog/service.py         # Store catalog, PLU resolution & product onboarding
 │   ├── pricing/service.py         # Decimal-exact currency calculation
 │   ├── scale_adapter/adapter.py   # Scale hardware protocol abstraction
 │   ├── pos_adapter/adapter.py     # Retail POS commit and receipt generator
@@ -137,4 +163,3 @@ tests/test_scale.py::test_scale_disconnect PASSED
 │   └── seed_database.py           # Database seeder (store, station, devices, catalog)
 └── tests/                         # Pytest test suite
 ```
-
