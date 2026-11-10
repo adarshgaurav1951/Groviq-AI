@@ -1,0 +1,27 @@
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Large Datasets & Local Database
+fruits-360/
+data/*.db
+*.sqlite3
+
+# Logs & Temporary Files
+*.log
+/tmp/
+
+# OS / Editor Files
+.DS_Store
+.idea/
+.vscode/
+*.swp

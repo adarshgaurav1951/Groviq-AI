@@ -1,0 +1,1774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BarcodeLess Produce Assistant | Assisted Checkout Station</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card-hover: #283548;
+      --border-color: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-green: #10b981;
+      --accent-green-glow: rgba(16, 185, 129, 0.4);
+      --accent-blue: #3b82f6;
+      --accent-amber: #f59e0b;
+      --accent-purple: #8b5cf6;
+      --accent-red: #ef4444;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* TOAST NOTIFICATION */
+    #toast-notification {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: #1e293b;
+      border: 2px solid var(--accent-green);
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 9999px;
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px var(--accent-green-glow);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 9999;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #toast-notification.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* HEADER */
+    header {
+      background: #0b1120;
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      background: linear-gradient(135deg, #10b981, #3b82f6);
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 20px;
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .header-center {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .status-pill {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: #1e293b;
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot-green {
+      width: 7px;
+      height: 7px;
+      background: var(--accent-green);
+      border-radius: 50%;
+      box-shadow: 0 0 6px var(--accent-green);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-header {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-header:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--text-muted);
+    }
+
+    .btn-enroll-header {
+      background: linear-gradient(135deg, #8b5cf6, #6366f1);
+      border: none;
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+      transition: transform 0.15s;
+    }
+
+    .btn-enroll-header:hover {
+      transform: scale(1.03);
+    }
+
+    /* MAIN LAYOUT */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1.1fr 1fr 1.1fr;
+      gap: 16px;
+      padding: 16px 24px;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* LEFT PANEL: CAMERA & CAPTURE */
+    .viewport-box {
+      position: relative;
+      background: #000;
+      border-radius: 10px;
+      height: 250px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border-color);
+    }
+
+    #preview-img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      transition: transform 0.2s ease;
+    }
+
+    #video-feed {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    /* LASER SCAN ANIMATION */
+    .laser-line {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, #10b981, #38bdf8, transparent);
+      box-shadow: 0 0 15px #10b981, 0 0 25px #38bdf8;
+      display: none;
+      z-index: 10;
+    }
+
+    @keyframes laserSweep {
+      0% { top: 0%; opacity: 0; }
+      15% { opacity: 1; }
+      85% { opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+
+    .laser-active {
+      display: block !important;
+      animation: laserSweep 0.5s ease-in-out infinite;
+    }
+
+    .shutter-flash {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: white;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    .reticle {
+      position: absolute;
+      top: 10%;
+      left: 10%;
+      right: 10%;
+      bottom: 10%;
+      border: 2px dashed rgba(16, 185, 129, 0.7);
+      border-radius: 12px;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s;
+    }
+
+    .reticle-label {
+      background: rgba(0, 0, 0, 0.75);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #10b981;
+      font-weight: 600;
+    }
+
+    .capture-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-cap {
+      flex: 1;
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 10px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-cap:hover {
+      background: #1e293b;
+      border-color: var(--accent-blue);
+    }
+
+    .btn-cap-primary {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      border-color: #3b82f6;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-cap-primary:hover {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      transform: translateY(-1px);
+    }
+
+    .sample-strip-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .sample-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      max-height: 140px;
+      overflow-y: auto;
+    }
+
+    .sample-btn {
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px 4px;
+      color: var(--text-main);
+      font-size: 11px;
+      font-weight: 500;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .sample-btn:hover, .sample-btn.active {
+      border-color: var(--accent-green);
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .quality-gate-box {
+      background: #0b1120;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 12px;
+    }
+
+    .qg-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .qg-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .qg-stat-item {
+      background: #1e293b;
+      padding: 4px 6px;
+      border-radius: 4px;
+    }
+
+    /* CENTER PANEL: RECOGNITION & CANDIDATES */
+    .decision-banner {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .decision-high {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid var(--accent-green);
+      color: #34d399;
+    }
+
+    .decision-med {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid var(--accent-amber);
+      color: #fbbf24;
+    }
+
+    .decision-new {
+      background: rgba(139, 92, 246, 0.2);
+      border: 1px solid var(--accent-purple);
+      color: #c4b5fd;
+      animation: pulseGlow 1.5s infinite;
+    }
+
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 0 4px rgba(139, 92, 246, 0.4); }
+      50% { box-shadow: 0 0 16px rgba(139, 92, 246, 0.8); }
+      100% { box-shadow: 0 0 4px rgba(139, 92, 246, 0.4); }
+    }
+
+    .btn-verify-new {
+      background: var(--accent-purple);
+      border: none;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(139, 92, 246, 0.4);
+    }
+
+    .candidates-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .candidate-card {
+      background: #0f172a;
+      border: 2px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .candidate-card:hover {
+      border-color: var(--accent-blue);
+      background: #182234;
+    }
+
+    .candidate-card.selected {
+      border-color: var(--accent-green);
+      background: rgba(16, 185, 129, 0.08);
+      box-shadow: 0 0 16px var(--accent-green-glow);
+    }
+
+    .candidate-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .candidate-name {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .candidate-rate {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent-green);
+      font-family: var(--font-mono);
+    }
+
+    .candidate-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .plu-tag {
+      background: #334155;
+      color: #cbd5e1;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+    }
+
+    .confidence-meter {
+      height: 4px;
+      background: #334155;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 2px;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      background: var(--accent-green);
+      transition: width 0.3s ease;
+    }
+
+    .manual-lookup-btn {
+      background: #0b1120;
+      border: 1px dashed var(--border-color);
+      color: var(--text-muted);
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .manual-lookup-btn:hover {
+      border-color: var(--accent-blue);
+      color: var(--text-main);
+    }
+
+    /* RIGHT PANEL: SCALE & BASKET */
+    .scale-box {
+      background: #0b1120;
+      border: 2px solid #334155;
+      border-radius: 10px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .scale-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .stability-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    .stable-yes {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid var(--accent-green);
+    }
+
+    .scale-display {
+      font-family: var(--font-mono);
+      font-size: 34px;
+      font-weight: 800;
+      text-align: right;
+      color: #38bdf8;
+      letter-spacing: -1px;
+    }
+
+    .scale-breakdown {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-color);
+      padding-top: 8px;
+    }
+
+    .scale-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-scale {
+      flex: 1;
+      background: #1e293b;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .price-calculation-card {
+      background: #1e293b;
+      border: 1px solid var(--accent-blue);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .calc-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+
+    .calc-total {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--accent-green);
+      font-family: var(--font-mono);
+    }
+
+    .btn-add-basket {
+      background: linear-gradient(135deg, #10b981, #059669);
+      border: none;
+      color: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      transition: all 0.2s;
+    }
+
+    .btn-add-basket:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(16, 185, 129, 0.5);
+    }
+
+    .btn-add-basket:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* BASKET ITEMS LIST */
+    .basket-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+      max-height: 220px;
+    }
+
+    .basket-item {
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .basket-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .basket-item-title {
+      font-weight: 700;
+    }
+
+    .basket-item-detail {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .basket-item-price {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-void {
+      background: transparent;
+      border: none;
+      color: var(--accent-red);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 4px;
+    }
+
+    .basket-summary-box {
+      border-top: 1px solid var(--border-color);
+      padding-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+    }
+
+    .summary-total {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      margin-top: 4px;
+    }
+
+    .btn-checkout {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      border: none;
+      color: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* MODALS */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: #1e293b;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      width: 90%;
+      max-width: 550px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .modal-input {
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text-main);
+      font-size: 13px;
+      width: 100%;
+    }
+
+    .receipt-pre {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: #0f172a;
+      padding: 16px;
+      border-radius: 8px;
+      white-space: pre;
+      line-height: 1.4;
+      color: #e2e8f0;
+      border: 1px dashed var(--border-color);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOAST NOTIFICATION BANNER -->
+  <div id="toast-notification">
+    <span id="toast-icon">✅</span>
+    <span id="toast-text">Scan Completed</span>
+  </div>
+
+  <!-- HEADER -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">G</div>
+      <div>
+        <div class="brand-title">Groviq AI <span style="font-weight: 400; color: var(--accent-green);">Produce & Retail Assistant</span></div>
+        <div class="brand-sub">Supermarket Fresh • Indiranagar | Station: LANE-PRODUCE-01</div>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <div class="status-pill">
+        <span class="dot-green"></span> Vision: MobileNetV3 + OpenWorld
+      </div>
+      <div class="status-pill">
+        <span class="dot-green"></span> Scale: CAS PD-II (Legal Metrology)
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-enroll-header" onclick="openEnrollModal()">➕ Register New Product</button>
+      <button class="btn-header" onclick="openAttendantModal()">Attendant Login</button>
+      <a href="/admin" class="btn-header" style="text-decoration: none;">Admin Console</a>
+    </div>
+  </header>
+
+  <!-- MAIN STATION WORKSPACE -->
+  <main>
+    
+    <!-- LEFT PANEL: CAMERA & CAPTURE -->
+    <section class="panel">
+      <div class="panel-title">
+        <span>Produce Capture Area</span>
+        <span id="capture-status-badge" style="font-size: 11px; color: var(--accent-green); font-weight: 700;">● Platter Ready</span>
+      </div>
+
+      <div class="viewport-box" id="viewport-box">
+        <img id="preview-img" src="/checkout/static/samples/banana.jpg" alt="Produce Viewport">
+        <video id="video-feed" autoplay playsinline></video>
+        <canvas id="snapshot-canvas" style="display: none;"></canvas>
+        <div class="laser-line" id="laser-line"></div>
+        <div class="shutter-flash" id="shutter-flash"></div>
+        <div class="reticle" id="reticle">
+          <span class="reticle-label">Place Item on Platter</span>
+        </div>
+      </div>
+
+      <div class="capture-controls">
+        <button class="btn-cap" id="btn-toggle-cam" onclick="toggleWebcam()">📹 Start Live Camera</button>
+        <label class="btn-cap" style="cursor: pointer;">
+          📁 Upload Image
+          <input type="file" id="file-upload" accept="image/*" style="display: none;" onchange="handleFileUpload(event)">
+        </label>
+        <button class="btn-cap btn-cap-primary" id="btn-scan-main" onclick="triggerScanFlow()">
+          <span id="btn-scan-icon">⚡</span> <span id="btn-scan-text">Scan & Identify</span>
+        </button>
+      </div>
+
+      <!-- Quick Fruit Sample Picker -->
+      <div class="sample-strip-title">Or Pick Quick Catalog Samples:</div>
+      <div class="sample-grid">
+        <div class="sample-btn active" onclick="selectSample('banana.jpg', 'Banana', 1.150)">🍌 Banana</div>
+        <div class="sample-btn" onclick="selectSample('apple_red_delicious.jpg', 'Apple Red Delicious', 0.850)">🍎 Red Apple</div>
+        <div class="sample-btn" onclick="selectSample('apple_golden.jpg', 'Apple Golden', 0.720)">🍏 Golden Apple</div>
+        <div class="sample-btn" onclick="selectSample('orange.jpg', 'Orange', 0.950)">🍊 Orange</div>
+        <div class="sample-btn" onclick="selectSample('lemon.jpg', 'Lemon', 0.350)">🍋 Lemon</div>
+        <div class="sample-btn" onclick="selectSample('tomato.jpg', 'Tomato', 0.600)">🍅 Tomato</div>
+        <div class="sample-btn" onclick="selectSample('potato.jpg', 'Potato', 1.400)">🥔 Potato</div>
+        <div class="sample-btn" onclick="selectSample('onion_red.jpg', 'Onion Red', 1.250)">🧅 Red Onion</div>
+        <div class="sample-btn" onclick="selectSample('mango.jpg', 'Mango', 0.780)">🥭 Mango</div>
+        <div class="sample-btn" onclick="selectSample('strawberry.jpg', 'Strawberry', 1.000, true)">🍓 Strawberry</div>
+        <div class="sample-btn" onclick="selectSample('kiwi.jpg', 'Kiwi', 2.000, true)">🥝 Kiwi</div>
+      </div>
+
+      <!-- Quality Gate Analysis -->
+      <div class="quality-gate-box">
+        <div class="qg-header">
+          <span>Quality Gate Analysis</span>
+          <span id="qg-status-text" style="color: var(--accent-green);">Passed</span>
+        </div>
+        <div class="qg-stats">
+          <div class="qg-stat-item">Sharpness: <span id="qg-blur-val" style="color: #fff;">—</span></div>
+          <div class="qg-stat-item">Glare: <span id="qg-glare-val" style="color: #fff;">—</span></div>
+          <div class="qg-stat-item">Luminance: <span id="qg-lux-val" style="color: #fff;">—</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CENTER PANEL: AI RECOGNITION & CANDIDATES -->
+    <section class="panel">
+      <div class="panel-title">
+        <span>Vision Identification</span>
+        <span id="model-latency-pill" style="font-size: 11px; font-family: var(--font-mono); color: var(--accent-green);">12.4 ms</span>
+      </div>
+
+      <!-- Decision Policy Banner -->
+      <div id="decision-banner" class="decision-banner decision-high">
+        <span id="decision-banner-text">High Confidence Match — Please confirm item:</span>
+        <button id="btn-new-product-verify" class="btn-verify-new" style="display: none;" onclick="openEnrollModal()">Verify New Product</button>
+      </div>
+
+      <!-- Top Candidates List -->
+      <div class="candidates-list" id="candidates-container">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div class="manual-lookup-btn" onclick="openManualSearch()">
+        🔍 Not what you're weighing? Search by PLU or Name
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL: LEGAL METROLOGY SCALE & BASKET -->
+    <section class="panel">
+      <div class="panel-title">
+        <span>Digital Scale Platter</span>
+        <span style="font-size: 10px; color: var(--text-muted);">Verified Legal Metrology CAS PD-II</span>
+      </div>
+
+      <!-- Scale Platter Display -->
+      <div class="scale-box">
+        <div class="scale-header">
+          <span>Net Weight</span>
+          <span id="scale-stability-badge" class="stability-badge stable-yes">● STABLE</span>
+        </div>
+        <div class="scale-display" id="display-net-weight">1.150 kg</div>
+        <div class="scale-breakdown">
+          <span>Gross: <b id="display-gross-weight" style="color: #fff;">1.150 kg</b></span>
+          <span>Tare: <b id="display-tare-weight" style="color: #fff;">0.000 kg</b></span>
+          <span>Unit: kg</span>
+        </div>
+      </div>
+
+      <!-- Simulator Scale Controls -->
+      <div class="scale-controls">
+        <button class="btn-scale" onclick="tareScale()">Tare (0.000)</button>
+        <button class="btn-scale" onclick="zeroScale()">Zero</button>
+        <button class="btn-scale" onclick="adjustWeight(-0.25)">-0.25 kg</button>
+        <button class="btn-scale" onclick="adjustWeight(0.25)">+0.25 kg</button>
+      </div>
+
+      <!-- Price Breakdown Card -->
+      <div class="price-calculation-card">
+        <div class="calc-row">
+          <span id="calc-item-name" style="font-weight: 700;">Robusta Cavendish Banana</span>
+          <span id="calc-item-rate" style="font-family: var(--font-mono); color: var(--accent-green);">₹55.00 / kg</span>
+        </div>
+        <div class="calc-row" style="font-size: 11px; color: var(--text-muted);">
+          <span id="calc-formula">1.150 kg × ₹55.00/kg</span>
+          <span id="calc-plu-tag" class="plu-tag">PLU 4011</span>
+        </div>
+        <div class="calc-row" style="align-items: baseline; border-top: 1px dashed var(--border-color); padding-top: 6px;">
+          <span style="font-weight: 600;">Line Total:</span>
+          <span class="calc-total" id="calc-line-total">₹63.25</span>
+        </div>
+        <button class="btn-add-basket" id="btn-add-to-basket" onclick="addCurrentItemToBasket()">Add Item to Basket</button>
+      </div>
+
+      <!-- Customer Basket Section -->
+      <div class="panel-title" style="margin-top: 6px;">
+        <span>Customer Basket (<span id="basket-item-count">0</span> items)</span>
+      </div>
+
+      <div class="basket-container" id="basket-items-list">
+        <div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 20px;">
+          Basket is empty. Scan produce to add.
+        </div>
+      </div>
+
+      <!-- Basket Summary & Checkout -->
+      <div class="basket-summary-box">
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <span id="summary-subtotal" style="font-family: var(--font-mono);">₹0.00</span>
+        </div>
+        <div class="summary-row">
+          <span>GST (0% Fresh Produce)</span>
+          <span style="font-family: var(--font-mono);">₹0.00</span>
+        </div>
+        <div class="summary-row summary-total">
+          <span>Total Amount</span>
+          <span id="summary-total" style="color: #38bdf8;">₹0.00</span>
+        </div>
+        <button class="btn-checkout" onclick="checkoutBasket()">Pay & Complete Checkout</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- NEW PRODUCT VERIFICATION / ENROLLMENT MODAL -->
+  <div class="modal-overlay" id="enroll-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span>✨ Verify & Enroll New Product</span>
+        <button class="btn-header" onclick="closeModal('enroll-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size: 12px; color: var(--text-muted);">
+          The AI detected a new or uncataloged product. Verify details to onboard it into the store catalog and calculate price:
+        </div>
+
+        <label style="font-size: 12px; font-weight: 600;">Product Display Name</label>
+        <input type="text" id="enroll-name" class="modal-input" placeholder="e.g. Red Dragonfruit / Organic Avocado">
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label style="font-size: 12px; font-weight: 600;">Category</label>
+            <select id="enroll-category" class="modal-input">
+              <option value="Fresh Produce">Fresh Produce</option>
+              <option value="Bakery">Bakery</option>
+              <option value="Beverages">Beverages</option>
+              <option value="Snacks & FMCG">Snacks & FMCG</option>
+              <option value="Dairy">Dairy</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 12px; font-weight: 600;">Unit of Sale</label>
+            <select id="enroll-unit" class="modal-input">
+              <option value="kg">By Weight (per kg)</option>
+              <option value="piece">By Count (per piece / pack)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label style="font-size: 12px; font-weight: 600;">Unit Price (₹)</label>
+            <input type="number" id="enroll-price" class="modal-input" placeholder="e.g. 180.00" step="0.5">
+          </div>
+          <div>
+            <label style="font-size: 12px; font-weight: 600;">PLU / Barcode (Optional)</label>
+            <input type="text" id="enroll-plu" class="modal-input" placeholder="e.g. 4999">
+          </div>
+        </div>
+
+        <button class="btn-checkout" style="background: linear-gradient(135deg, #10b981, #059669); margin-top: 8px;" onclick="submitEnrollNewProduct()">
+          Confirm & Add to Basket
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MANUAL SEARCH MODAL -->
+  <div class="modal-overlay" id="manual-search-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span>Lookup Produce Catalog</span>
+        <button class="btn-header" onclick="closeModal('manual-search-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="manual-search-input" class="modal-input" placeholder="Type produce name, SKU, or 4-digit PLU..." oninput="handleManualSearch(this.value)">
+        <div class="search-results-list" id="manual-search-results"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ATTENDANT OVERRIDE MODAL -->
+  <div class="modal-overlay" id="attendant-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span>Attendant Authorization & Override</span>
+        <button class="btn-header" onclick="closeModal('attendant-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size: 12px; color: var(--text-muted);">Enter 4-digit Cashier / Attendant PIN (Default: 1234)</div>
+        <input type="password" id="attendant-pin" class="modal-input" placeholder="PIN (1234)" maxlength="4">
+        
+        <label style="font-size: 12px; font-weight: 600;">Override Action</label>
+        <select id="attendant-action" class="modal-input">
+          <option value="price_override">Produce Price Override</option>
+          <option value="tare_override">Scale Tare Calibration Override</option>
+          <option value="void_line">Void Damaged / Disputed Item</option>
+        </select>
+
+        <label style="font-size: 12px; font-weight: 600;">Reason Code</label>
+        <select id="attendant-reason" class="modal-input">
+          <option value="Damaged outer skin / bruising">Damaged outer skin / bruising</option>
+          <option value="Customer dispute on variety">Customer dispute on variety</option>
+          <option value="Scale zero drift adjustment">Scale zero drift adjustment</option>
+          <option value="Produce clearance markdown">Produce clearance markdown</option>
+        </select>
+
+        <button class="btn-checkout" onclick="submitAttendantOverride()">Authorize Override</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECEIPT MODAL -->
+  <div class="modal-overlay" id="receipt-modal">
+    <div class="modal-content" style="max-width: 480px;">
+      <div class="modal-header">
+        <span>Checkout Complete • Store Receipt</span>
+        <button class="btn-header" onclick="closeModal('receipt-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <pre class="receipt-pre" id="receipt-text-content"></pre>
+        <button class="btn-checkout" onclick="closeModal('receipt-modal'); refreshBasket();">Done / New Customer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT STATE ENGINE -->
+  <script>
+    const API_BASE = window.location.origin;
+
+    let currentGrossWeight = 1.150;
+    let currentTareWeight = 0.000;
+    let isScaleStable = true;
+    let activeCandidates = [];
+    let selectedCandidate = null;
+    let currentTransactionId = null;
+    let isWebcamStreaming = false;
+    let lastFeatureVector = null;
+
+    // Web Audio POS Scanner Chime
+    let audioCtx = null;
+    function playScannerBeep() {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1400, audioCtx.currentTime); // High pitched scanner beep
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.12);
+      } catch (e) {
+        // audio might be blocked before first user gesture
+      }
+    }
+
+    function showToast(message, icon = '✅') {
+      const toast = document.getElementById('toast-notification');
+      document.getElementById('toast-text').innerText = message;
+      document.getElementById('toast-icon').innerText = icon;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2800);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      selectSample('banana.jpg', 'Banana', 1.150);
+      refreshBasket();
+    });
+
+    async function selectSample(filename, produceName, simWeight, isPiece = false) {
+      document.querySelectorAll('.sample-btn').forEach(b => b.classList.remove('active'));
+      event?.target?.classList?.add('active');
+
+      stopWebcam();
+
+      const imgEl = document.getElementById('preview-img');
+      imgEl.style.display = 'block';
+      imgEl.src = `/checkout/static/samples/${filename}`;
+
+      currentGrossWeight = simWeight;
+      updateScaleDisplay();
+      await triggerScanFlow();
+    }
+
+    function updateScaleDisplay() {
+      const net = Math.max(0, currentGrossWeight - currentTareWeight);
+      document.getElementById('display-net-weight').innerText = `${net.toFixed(3)} kg`;
+      document.getElementById('display-gross-weight').innerText = `${currentGrossWeight.toFixed(3)} kg`;
+      document.getElementById('display-tare-weight').innerText = `${currentTareWeight.toFixed(3)} kg`;
+
+      const badge = document.getElementById('scale-stability-badge');
+      if (isScaleStable) {
+        badge.className = 'stability-badge stable-yes';
+        badge.innerText = '● STABLE';
+      } else {
+        badge.className = 'stability-badge stable-no';
+        badge.innerText = '● MOTION...';
+      }
+      updatePriceBreakdown();
+    }
+
+    function adjustWeight(delta) {
+      currentGrossWeight = Math.max(0.05, Math.round((currentGrossWeight + delta) * 1000) / 1000);
+      updateScaleDisplay();
+    }
+
+    function tareScale() {
+      currentTareWeight = currentGrossWeight;
+      updateScaleDisplay();
+      showToast(`Scale Tared: ${currentTareWeight.toFixed(3)} kg`, '⚖️');
+    }
+
+    function zeroScale() {
+      currentGrossWeight = 0.0;
+      currentTareWeight = 0.0;
+      updateScaleDisplay();
+      showToast('Scale Platter Zeroed (0.000 kg)', '⚖️');
+    }
+
+    // WEBCAM STREAMING & REAL FRAME SNAPSHOT
+    async function toggleWebcam() {
+      const videoEl = document.getElementById('video-feed');
+      const imgEl = document.getElementById('preview-img');
+      const toggleBtn = document.getElementById('btn-toggle-cam');
+
+      if (isWebcamStreaming) {
+        stopWebcam();
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'environment' } 
+        });
+        videoEl.srcObject = stream;
+        videoEl.style.display = 'block';
+        imgEl.style.display = 'none';
+        isWebcamStreaming = true;
+        toggleBtn.innerText = '🛑 Stop Camera';
+        document.getElementById('capture-status-badge').innerText = '● Live Camera Active';
+        showToast('Live Camera Feed Started. Point at any produce item.', '📹');
+      } catch (e) {
+        alert('Webcam access not granted or not available. Using sample images or file upload.');
+      }
+    }
+
+    function stopWebcam() {
+      const videoEl = document.getElementById('video-feed');
+      const imgEl = document.getElementById('preview-img');
+      const toggleBtn = document.getElementById('btn-toggle-cam');
+
+      if (videoEl.srcObject) {
+        videoEl.srcObject.getTracks().forEach(track => track.stop());
+        videoEl.srcObject = null;
+      }
+      videoEl.style.display = 'none';
+      imgEl.style.display = 'block';
+      isWebcamStreaming = false;
+      toggleBtn.innerText = '📹 Start Live Camera';
+      document.getElementById('capture-status-badge').innerText = '● Platter Ready';
+    }
+
+    function captureLiveVideoFrame() {
+      const videoEl = document.getElementById('video-feed');
+      const canvas = document.getElementById('snapshot-canvas');
+      canvas.width = videoEl.videoWidth || 640;
+      canvas.height = videoEl.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+      return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+    }
+
+    function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      stopWebcam();
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const imgEl = document.getElementById('preview-img');
+        imgEl.src = event.target.result;
+        imgEl.style.display = 'block';
+        showToast(`Image uploaded: ${file.name}`, '📁');
+        await triggerScanFlow();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // TRIGGER SCAN FLOW WITH VISIBLE LASER SWEEP & BEEP
+    async function triggerScanFlow() {
+      const scanBtn = document.getElementById('btn-scan-main');
+      const laser = document.getElementById('laser-line');
+      const badge = document.getElementById('capture-status-badge');
+
+      // 1. Trigger visible scanning UI
+      laser.classList.add('laser-active');
+      badge.innerText = '⚡ Scanning Platter...';
+      badge.style.color = 'var(--accent-blue)';
+      document.getElementById('btn-scan-icon').innerText = '⏳';
+      document.getElementById('btn-scan-text').innerText = 'Scanning...';
+
+      // Minimum visual delay so human eye clearly sees the laser sweep
+      const minDelay = new Promise(resolve => setTimeout(resolve, 350));
+
+      try {
+        let imageBlob = null;
+        if (isWebcamStreaming) {
+          imageBlob = await captureLiveVideoFrame();
+          const canvas = document.getElementById('snapshot-canvas');
+          document.getElementById('preview-img').src = canvas.toDataURL('image/jpeg');
+        } else {
+          const imgEl = document.getElementById('preview-img');
+          const response = await fetch(imgEl.src);
+          imageBlob = await response.blob();
+        }
+
+        const formData = new FormData();
+        formData.append('file', imageBlob, 'capture.jpg');
+        formData.append('store_id', 'STORE-IN-001');
+        formData.append('station_id', 'STATION-BLR-01');
+
+        const t0 = performance.now();
+        const apiPromise = fetch(`${API_BASE}/api/v1/recognitions`, {
+          method: 'POST',
+          body: formData
+        }).then(r => r.json());
+
+        const [_, data] = await Promise.all([minDelay, apiPromise]);
+        const elapsed = (performance.now() - t0).toFixed(1);
+        document.getElementById('model-latency-pill').innerText = `${elapsed} ms`;
+
+        // Success sound & toast
+        playScannerBeep();
+
+        if (data.feature_vector) {
+          lastFeatureVector = data.feature_vector;
+        }
+
+        // Quality Gate UI
+        if (data.quality) {
+          document.getElementById('qg-blur-val').innerText = data.quality.blur_score;
+          document.getElementById('qg-glare-val').innerText = `${(data.quality.glare_ratio * 100).toFixed(1)}%`;
+          document.getElementById('qg-lux-val').innerText = data.quality.mean_luminance;
+          const qgStatus = document.getElementById('qg-status-text');
+          if (data.quality.is_usable) {
+            qgStatus.innerText = 'Passed';
+            qgStatus.style.color = 'var(--accent-green)';
+          } else {
+            qgStatus.innerText = 'Degraded';
+            qgStatus.style.color = 'var(--accent-amber)';
+          }
+        }
+
+        renderCandidates(data);
+
+        // Notify user via toast
+        const top = (data.candidates && data.candidates[0]) ? data.candidates[0] : null;
+        if (top) {
+          if (top.is_new_product) {
+            showToast(`New Product Detected: "${top.suggested_name || 'Item'}" — Please Verify`, '✨');
+          } else {
+            showToast(`Identified: ${top.display_name} (${Math.round(top.confidence * 100)}%)`, '✅');
+          }
+        }
+
+      } catch (err) {
+        console.error('Scan error:', err);
+        showToast('Scanning failed. Check network or image.', '❌');
+      } finally {
+        laser.classList.remove('laser-active');
+        badge.innerText = isWebcamStreaming ? '● Live Camera Active' : '● Platter Ready';
+        badge.style.color = 'var(--accent-green)';
+        document.getElementById('btn-scan-icon').innerText = '⚡';
+        document.getElementById('btn-scan-text').innerText = 'Scan & Identify';
+      }
+    }
+
+    function renderCandidates(data) {
+      const container = document.getElementById('candidates-container');
+      container.innerHTML = '';
+      activeCandidates = data.candidates || [];
+
+      const banner = document.getElementById('decision-banner');
+      const bannerText = document.getElementById('decision-banner-text');
+      const verifyBtn = document.getElementById('btn-new-product-verify');
+
+      verifyBtn.style.display = 'none';
+
+      if (data.status === 'new_product_detected') {
+        banner.className = 'decision-banner decision-new';
+        const topCand = activeCandidates[0] || {};
+        bannerText.innerText = `✨ Uncataloged Product Detected: "${topCand.suggested_name || 'New Item'}"`;
+        verifyBtn.style.display = 'inline-block';
+      } else if (data.status === 'high_confidence') {
+        banner.className = 'decision-banner decision-high';
+        bannerText.innerText = 'High Confidence Match — Please confirm suggested item:';
+      } else if (data.status === 'medium_confidence') {
+        banner.className = 'decision-banner decision-med';
+        bannerText.innerText = 'Select the exact produce variety from the choices below:';
+      } else {
+        banner.className = 'decision-banner decision-new';
+        bannerText.innerText = 'Uncataloged or Custom Product — Click to Verify & Add:';
+        verifyBtn.style.display = 'inline-block';
+      }
+
+      if (activeCandidates.length === 0) {
+        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px;">No matching produce recognized. Click 'Register New Product' to onboard it.</div>`;
+        selectedCandidate = null;
+        updatePriceBreakdown();
+        return;
+      }
+
+      activeCandidates.forEach((cand, idx) => {
+        const card = document.createElement('div');
+        card.className = `candidate-card ${idx === 0 ? 'selected' : ''}`;
+        if (idx === 0) selectedCandidate = cand;
+
+        const isNew = cand.is_new_product;
+        const pluDisplay = cand.plu_code ? `PLU ${cand.plu_code}` : (isNew ? 'New Product' : 'Unmapped');
+        const rateDisplay = cand.unit_price ? `₹${cand.unit_price.toFixed(2)} / ${cand.unit_of_sale || 'kg'}` : (isNew ? 'Click to Set Price' : 'Price Pending');
+        const confPercent = Math.round(cand.confidence * 100);
+
+        card.innerHTML = `
+          <div class="candidate-top-row">
+            <span class="candidate-name">${cand.display_name}</span>
+            <span class="candidate-rate" style="${isNew ? 'color: var(--accent-purple); font-size: 12px;' : ''}">${rateDisplay}</span>
+          </div>
+          <div class="candidate-meta">
+            <span class="plu-tag" style="${isNew ? 'background: #5b21b6; color: #ede9fe;' : ''}">${pluDisplay}</span>
+            <span>Confidence: ${confPercent}%</span>
+          </div>
+          <div class="confidence-meter">
+            <div class="confidence-fill" style="width: ${confPercent}%; ${isNew ? 'background: var(--accent-purple);' : ''}"></div>
+          </div>
+        `;
+
+        card.onclick = () => {
+          if (cand.is_new_product) {
+            openEnrollModal(cand.suggested_name);
+            return;
+          }
+          document.querySelectorAll('.candidate-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          selectedCandidate = cand;
+          updatePriceBreakdown();
+        };
+
+        container.appendChild(card);
+      });
+
+      updatePriceBreakdown();
+    }
+
+    function updatePriceBreakdown() {
+      const addBtn = document.getElementById('btn-add-to-basket');
+      if (!selectedCandidate || !selectedCandidate.unit_price) {
+        document.getElementById('calc-item-name').innerText = selectedCandidate ? selectedCandidate.display_name : 'Select Produce Item';
+        document.getElementById('calc-item-rate').innerText = '—';
+        document.getElementById('calc-formula').innerText = selectedCandidate && selectedCandidate.is_new_product ? 'Verify price & details to add' : 'Awaiting item confirmation';
+        document.getElementById('calc-line-total').innerText = '₹0.00';
+        addBtn.disabled = true;
+        return;
+      }
+
+      addBtn.disabled = false;
+      const net = Math.max(0, currentGrossWeight - currentTareWeight);
+      const isPerPiece = selectedCandidate.price_basis === 'per_piece';
+
+      let total = 0;
+      let formulaStr = '';
+
+      if (isPerPiece) {
+        const qty = Math.max(1, Math.round(net));
+        total = qty * selectedCandidate.unit_price;
+        formulaStr = `${qty} pc × ₹${selectedCandidate.unit_price.toFixed(2)}/pc`;
+      } else {
+        total = net * selectedCandidate.unit_price;
+        formulaStr = `${net.toFixed(3)} kg × ₹${selectedCandidate.unit_price.toFixed(2)}/kg`;
+      }
+
+      document.getElementById('calc-item-name').innerText = selectedCandidate.display_name;
+      document.getElementById('calc-item-rate').innerText = `₹${selectedCandidate.unit_price.toFixed(2)} / ${selectedCandidate.unit_of_sale || 'kg'}`;
+      document.getElementById('calc-formula').innerText = formulaStr;
+      document.getElementById('calc-plu-tag').innerText = selectedCandidate.plu_code ? `PLU ${selectedCandidate.plu_code}` : 'Verified';
+      document.getElementById('calc-line-total').innerText = `₹${total.toFixed(2)}`;
+    }
+
+    async function addCurrentItemToBasket() {
+      if (!selectedCandidate || !selectedCandidate.catalog_item_id) {
+        if (selectedCandidate && selectedCandidate.is_new_product) {
+          openEnrollModal(selectedCandidate.suggested_name);
+        } else {
+          alert('Please select an active produce item first.');
+        }
+        return;
+      }
+
+      const net = Math.max(0.01, currentGrossWeight - currentTareWeight);
+      const isPerPiece = selectedCandidate.price_basis === 'per_piece';
+      const qty = isPerPiece ? Math.max(1, Math.round(net)) : 1;
+      const idempotencyKey = `REQ-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      const payload = {
+        store_id: 'STORE-IN-001',
+        station_id: 'STATION-BLR-01',
+        catalog_item_id: selectedCandidate.catalog_item_id,
+        idempotency_key: idempotencyKey,
+        weight_value: isPerPiece ? null : net,
+        tare_value: currentTareWeight,
+        quantity: qty
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/basket/lines`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok) {
+          renderBasket(data.summary);
+          playScannerBeep();
+          showToast(`Added to Basket: ${selectedCandidate.display_name}`, '🛒');
+        } else {
+          alert(`Error adding line: ${data.detail || 'Unknown error'}`);
+        }
+      } catch (e) {
+        alert(`Failed to add line: ${e.message}`);
+      }
+    }
+
+    async function refreshBasket() {
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/basket?store_id=STORE-IN-001&station_id=STATION-BLR-01`);
+        const data = await res.json();
+        renderBasket(data);
+      } catch (e) {
+        console.error('Failed to refresh basket:', e);
+      }
+    }
+
+    function renderBasket(summary) {
+      if (!summary) return;
+      currentTransactionId = summary.transaction_id;
+      const container = document.getElementById('basket-items-list');
+      container.innerHTML = '';
+
+      const lines = summary.lines || [];
+      document.getElementById('basket-item-count').innerText = lines.length;
+
+      if (lines.length === 0) {
+        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 20px;">Basket is empty. Scan produce to add.</div>`;
+      } else {
+        lines.forEach(l => {
+          const itemEl = document.createElement('div');
+          itemEl.className = 'basket-item';
+          const qtyOrWt = l.weight_value ? `${l.weight_value.toFixed(3)} kg` : `${l.quantity} pc`;
+          itemEl.innerHTML = `
+            <div class="basket-item-info">
+              <span class="basket-item-title">${l.display_name}</span>
+              <span class="basket-item-detail">${qtyOrWt} • ₹${l.unit_price.toFixed(2)}/${l.weight_unit || 'pc'} [${l.plu_code || 'PLU'}]</span>
+            </div>
+            <div class="basket-item-price">
+              <span>₹${l.line_total.toFixed(2)}</span>
+              <button class="btn-void" title="Void Item" onclick="removeBasketLine('${l.id}')">✕</button>
+            </div>
+          `;
+          container.appendChild(itemEl);
+        });
+      }
+
+      document.getElementById('summary-subtotal').innerText = `₹${summary.subtotal.toFixed(2)}`;
+      document.getElementById('summary-total').innerText = `₹${summary.total_amount.toFixed(2)}`;
+    }
+
+    async function removeBasketLine(lineId) {
+      if (!confirm('Remove this item from the basket?')) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/basket/lines/${lineId}?actor_id=shopper&reason=User%20removed%20item`, {
+          method: 'DELETE'
+        });
+        const data = await res.json();
+        renderBasket(data.summary);
+        showToast('Item removed from basket', '🗑️');
+      } catch (e) {
+        alert(`Failed to remove line: ${e.message}`);
+      }
+    }
+
+    async function checkoutBasket() {
+      if (!currentTransactionId) {
+        alert('No active basket to checkout.');
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/basket/checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transaction_id: currentTransactionId })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('receipt-text-content').innerText = data.receipt;
+          openModal('receipt-modal');
+          showToast('Checkout Complete! Receipt Generated.', '🧾');
+        } else {
+          alert(`Checkout failed: ${data.detail}`);
+        }
+      } catch (e) {
+        alert(`Checkout error: ${e.message}`);
+      }
+    }
+
+    // NEW PRODUCT VERIFICATION / ENROLLMENT
+    function openEnrollModal(suggestedName = '') {
+      const topCand = activeCandidates[0] || {};
+      const nameInput = document.getElementById('enroll-name');
+      nameInput.value = suggestedName || topCand.suggested_name || topCand.visual_class || '';
+      document.getElementById('enroll-price').value = '';
+      document.getElementById('enroll-plu').value = '';
+      openModal('enroll-modal');
+    }
+
+    async function submitEnrollNewProduct() {
+      const name = document.getElementById('enroll-name').value.trim();
+      const priceStr = document.getElementById('enroll-price').value.trim();
+      const category = document.getElementById('enroll-category').value;
+      const unit = document.getElementById('enroll-unit').value;
+      const plu = document.getElementById('enroll-plu').value.trim();
+
+      if (!name) {
+        alert('Please enter a product name.');
+        return;
+      }
+      if (!priceStr || isNaN(parseFloat(priceStr)) || parseFloat(priceStr) <= 0) {
+        alert('Please enter a valid price greater than 0.');
+        return;
+      }
+
+      const price = parseFloat(priceStr);
+      const priceBasis = unit === 'kg' ? 'per_kg' : 'per_piece';
+
+      try {
+        const payload = {
+          display_name: name,
+          unit_price: price,
+          category: category,
+          unit_of_sale: unit,
+          price_basis: priceBasis,
+          plu_code: plu || null,
+          store_id: 'STORE-IN-001',
+          feature_vector: lastFeatureVector
+        };
+
+        const res = await fetch(`${API_BASE}/api/v1/catalog/items`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const registeredItem = await res.json();
+        if (res.ok) {
+          closeModal('enroll-modal');
+          showToast(`Enrolled: ${registeredItem.display_name} @ ₹${registeredItem.unit_price}`, '🎉');
+          selectedCandidate = {
+            catalog_item_id: registeredItem.catalog_item_id,
+            retailer_sku: registeredItem.retailer_sku,
+            display_name: registeredItem.display_name,
+            plu_code: registeredItem.plu_code,
+            unit_price: registeredItem.unit_price,
+            unit_of_sale: registeredItem.unit_of_sale,
+            price_basis: registeredItem.price_basis,
+            is_new_product: false
+          };
+          updatePriceBreakdown();
+          await addCurrentItemToBasket();
+        } else {
+          alert(`Failed to register product: ${registeredItem.detail}`);
+        }
+      } catch (e) {
+        alert(`Error registering product: ${e.message}`);
+      }
+    }
+
+    // Manual search modal
+    function openManualSearch() {
+      openModal('manual-search-modal');
+      handleManualSearch('');
+    }
+
+    async function handleManualSearch(query) {
+      const container = document.getElementById('manual-search-results');
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/catalog/items?query=${encodeURIComponent(query)}&store_id=STORE-IN-001`);
+        const items = await res.json();
+        container.innerHTML = '';
+        if (items.length === 0) {
+          container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 10px;">No items match "${query}"</div>`;
+          return;
+        }
+        items.forEach(item => {
+          const row = document.createElement('div');
+          row.style.background = '#0f172a';
+          row.style.border = '1px solid var(--border-color)';
+          row.style.borderRadius = '8px';
+          row.style.padding = '10px 14px';
+          row.style.display = 'flex';
+          row.style.justifyContent = 'space-between';
+          row.style.alignItems = 'center';
+          row.style.cursor = 'pointer';
+          row.innerHTML = `
+            <div>
+              <div style="font-weight: 700;">${item.display_name}</div>
+              <div style="font-size: 11px; color: var(--text-muted);">PLU: ${item.plu_code || 'N/A'} • SKU: ${item.retailer_sku}</div>
+            </div>
+            <div style="font-family: var(--font-mono); font-weight: 700; color: var(--accent-green);">
+              ₹${item.unit_price ? item.unit_price.toFixed(2) : '0.00'} / ${item.unit_of_sale}
+            </div>
+          `;
+          row.onclick = () => {
+            selectedCandidate = {
+              catalog_item_id: item.catalog_item_id,
+              display_name: item.display_name,
+              plu_code: item.plu_code,
+              unit_price: item.unit_price,
+              unit_of_sale: item.unit_of_sale,
+              price_basis: item.price_basis,
+              is_new_product: false
+            };
+            closeModal('manual-search-modal');
+            updatePriceBreakdown();
+            showToast(`Selected: ${item.display_name}`, '✅');
+          };
+          container.appendChild(row);
+        });
+      } catch (e) {
+        console.error('Manual search failed:', e);
+      }
+    }
+
+    // Attendant Override
+    function openAttendantModal() {
+      openModal('attendant-modal');
+    }
+
+    async function submitAttendantOverride() {
+      const pin = document.getElementById('attendant-pin').value;
+      const action = document.getElementById('attendant-action').value;
+      const reason = document.getElementById('attendant-reason').value;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/attendant/override`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            actor_id: 'attendant-007',
+            pin: pin,
+            action: action,
+            reason: reason
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast(`Override Authorized: ${action}`, '🛡️');
+          closeModal('attendant-modal');
+        } else {
+          alert(`Authorization Rejected: ${data.detail}`);
+        }
+      } catch (e) {
+        alert(`Override failed: ${e.message}`);
+      }
+    }
+
+    function openModal(id) {
+      document.getElementById(id).style.display = 'flex';
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).style.display = 'none';
+    }
+  </script>
+</body>
+</html>
